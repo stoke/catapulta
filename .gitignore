@@ -1,0 +1,9 @@
+tests.sh
+*.swp
+*.swo
+
+.idea/
+target/
+db/
+project/target/
+project/project/
