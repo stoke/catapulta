@@ -15,5 +15,6 @@ libraryDependencies ++= Seq(
   "org.mage" % "mage-client" % "1.4.6",
   "com.github.finagle" %% "finch-core" % "0.9.2",
   "com.github.finagle" %% "finch-circe" % "0.9.2",
-  "io.circe" %% "circe-generic" % "0.2.1"
+  "io.circe" %% "circe-generic" % "0.2.1",
+  "org.specs2" %% "specs2-core" % "3.6.6" % "test"
 )

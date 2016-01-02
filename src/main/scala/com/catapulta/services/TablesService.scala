@@ -21,7 +21,7 @@ import io.circe.generic.auto._
   * Created by sandromosca on 27/12/15.
   */
 object TablesService {
-  def service: Service[Request, Response] = (showTables :+: joinTable).toService
+  def service: Service[Request, Response] = (showTables :+: joinTable :+: pollingTest).toService
 
   val showTables: Endpoint[Seq[Table]] = get("tables" ? tokenRequestReader) { (session: Session) =>
     FuturePool.unboundedPool {
@@ -47,6 +47,14 @@ object TablesService {
 
         Ok(table)
       }
+  }
+
+  val pollingTest: Endpoint[String] = get("tables" / "poll") {
+    FuturePool.unboundedPool {
+      Thread.sleep(10000)
+
+      Ok("polled")
+    }
   }
 
 }

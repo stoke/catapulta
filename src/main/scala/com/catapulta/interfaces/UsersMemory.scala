@@ -5,19 +5,15 @@ import java.util.UUID
 import com.catapulta.messages.ConnectionRequest
 import com.catapulta.models.{User, UsersInterface}
 import com.catapulta.utils
-import mage.interfaces.MageClient
-import mage.interfaces.callback.ClientCallback
-import mage.remote.{Connection, SessionImpl}
-import mage.utils.MageVersion
-import mage.utils.MageVersion._
+import com.catapulta.mageclient.Client
+import mage.remote.SessionImpl
 import scala.collection._
-import scala.collection.JavaConversions._
 
 /**
   * Created by sandromosca on 27/12/15.
   */
-object UsersMemory extends UsersInterface with MageClient { // TODO: decouple MageClient
-  private var users: mutable.Map[User, SessionImpl] = mutable.Map.empty
+object UsersMemory extends UsersInterface {
+  private var users: concurrent.TrieMap[User, SessionImpl] = concurrent.TrieMap.empty
 
   override def pairById(id: String): Option[(User, SessionImpl)] =
     users.find({ case (user, session) => user.token.toString == id })
@@ -38,7 +34,9 @@ object UsersMemory extends UsersInterface with MageClient { // TODO: decouple Ma
       UUID.randomUUID()
     )
 
-    val session = new SessionImpl(this)
+    val client = new Client(user)
+
+    val session = new SessionImpl(client)
     val connection = utils.connect(user)
 
     session.connect(connection)
@@ -49,12 +47,5 @@ object UsersMemory extends UsersInterface with MageClient { // TODO: decouple Ma
 
     pair
   }
-
-  override def getVersion = new MageVersion(MAGE_VERSION_MAJOR, MAGE_VERSION_MINOR, MAGE_VERSION_PATCH, MAGE_VERSION_MINOR_PATCH, MAGE_VERSION_INFO)
-  override def processCallback(callback: ClientCallback) = { println(callback.getMethod); val data = callback.getData.asInstanceOf[java.util.List[String]]; println(data.toSeq) }
-  override def connected(message: String): Unit = {}
-  override def disconnected(message: Boolean): Unit = {}
-  override def showMessage(message: String): Unit = {}
-  override def showError(message: String): Unit = {}
 
 }
