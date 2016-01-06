@@ -2,6 +2,8 @@ package com.catapulta.services
 
 import java.util.UUID
 
+import com.catapulta.EventManager
+import com.catapulta.events.StartGame
 import com.catapulta.messages._
 import mage.cards.decks.DeckCardLists
 import mage.view.TableView
@@ -48,6 +50,7 @@ object TablesService {
         Ok(table)
       }
   }
+
 
   val pollingTest: Endpoint[String] = get("tables" / "poll") {
     FuturePool.unboundedPool {

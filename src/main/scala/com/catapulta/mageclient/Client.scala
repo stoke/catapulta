@@ -13,22 +13,23 @@ import scala.collection.JavaConversions._
 /**
   * Created by sandromosca on 31/12/15.
   */
-class Client(user: User) extends MageClient {
+class Client(val user: User) extends MageClient {
   override def getVersion = new MageVersion(
     MAGE_VERSION_MAJOR, MAGE_VERSION_MINOR, MAGE_VERSION_PATCH, MAGE_VERSION_MINOR_PATCH, MAGE_VERSION_INFO
   )
+
+  implicit val userImplicit = user
 
   override def processCallback(callback: ClientCallback) = {
     val event = callback.getMethod match {
       case "startGame" =>
         val clientMessage = callback.getData.asInstanceOf[TableClientMessage]
 
-        StartGame(clientMessage.getGameId.toString)
+        println("Dispatching StartGame")
+
+        EventManager add StartGame(clientMessage.getGameId.toString)
     }
 
-    implicit val userImplicit = user
-
-    EventManager add event
   }
 
   override def connected(message: String): Unit = {}

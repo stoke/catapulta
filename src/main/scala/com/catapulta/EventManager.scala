@@ -1,6 +1,6 @@
 package com.catapulta
 
-import java.util.concurrent.{ConcurrentLinkedQueue, ScheduledFuture, TimeUnit, ScheduledThreadPoolExecutor}
+import java.util.concurrent._
 
 import com.catapulta.models.User
 import com.twitter.util.{Future, Promise}
@@ -43,6 +43,7 @@ import scala.collection.JavaConversions._
 object events {
   sealed trait Event
   case class StartGame(id: String) extends Event
+  case class TestEvent(n: Int) extends Event
 }
 
 object EventManager {
@@ -52,6 +53,14 @@ object EventManager {
   type CallbacksMap = concurrent.TrieMap[Manifest[_], Promise[Event]]
 
   case class EventUser(user: User, events: EventBuffer, callbacks: CallbacksMap)
+
+  private val runnable = new Runnable {
+    override def run() = dispatchEvents()
+  }
+
+  val executor = Executors.newScheduledThreadPool(1)
+
+  executor.scheduleAtFixedRate(runnable, 0, 100, TimeUnit.MILLISECONDS) // is 100 ms low enough?
 
   private val users: java.util.concurrent.ConcurrentLinkedQueue[EventUser] =
     new java.util.concurrent.ConcurrentLinkedQueue[EventUser]()
@@ -122,16 +131,14 @@ object EventManager {
 
   def future[T <: Event](implicit user: User, m: Manifest[T]): Future[T] = {
     val promiseOption = callback[T]
-    val currentUser = lookupUser(user).getOrElse { addUser(user) }
 
-    promiseOption match {
-      case Some(promise) => promise
-      case None =>
-        val promise = Promise[Event]()
+    promiseOption getOrElse {
+      val currentUser = lookupUser(user) getOrElse { addUser(user) }
+      val promise = Promise[Event]()
 
-        currentUser.callbacks += m -> promise
+      currentUser.callbacks += m -> promise
 
-        promise.map(eventToEventImpl[T])
+      promise.map(eventToEventImpl[T])
     }
   }
 }
