@@ -42,6 +42,7 @@ import scala.collection.JavaConversions._
 
 object events {
   sealed trait Event
+
   case class StartGame(id: String) extends Event
   case class TestEvent(n: Int) extends Event
 }
@@ -99,9 +100,13 @@ object EventManager {
       promiseOption = user.callbacks.get(manifest);
       promise <- promiseOption
     ) {
+      println(s"Dispatching $event to $promise")
+
       dispatchEvent(promise, event)
 
       user.events.remove(event)
+
+      user.callbacks -= manifest
     }
   }
 
@@ -132,11 +137,16 @@ object EventManager {
   def future[T <: Event](implicit user: User, m: Manifest[T]): Future[T] = {
     val promiseOption = callback[T]
 
+    if (promiseOption.isDefined)
+      println(s"Existing $promiseOption")
+
     promiseOption getOrElse {
       val currentUser = lookupUser(user) getOrElse { addUser(user) }
       val promise = Promise[Event]()
 
       currentUser.callbacks += m -> promise
+
+      println(s"Creating new one $promise")
 
       promise.map(eventToEventImpl[T])
     }
