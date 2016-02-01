@@ -28,7 +28,7 @@ object GamesService {
     (session: Session) =>
       implicit val user = session.user
 
-      EventManager.future[StartGame].map(Ok)
+      EventManager.future[StartGame]().map(Ok)
   }
 }
 

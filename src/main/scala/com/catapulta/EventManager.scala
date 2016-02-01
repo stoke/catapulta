@@ -40,6 +40,7 @@ import scala.collection.JavaConversions._
   * If someone comes up with another solution i'm all ears.
   */
 
+
 object events {
   sealed trait Event
 
@@ -51,7 +52,12 @@ object EventManager {
   import events._
 
   type EventBuffer = ConcurrentLinkedQueue[Event]
-  type CallbacksMap = concurrent.TrieMap[Manifest[_], Promise[Event]]
+  type Callback = (Event => Boolean, Promise[Event])
+  type CallbackBuffer = ConcurrentLinkedQueue[Callback]
+  type CallbacksMap = concurrent.TrieMap[Manifest[_], CallbackBuffer]
+
+  private implicit def callbackToPromise[T](x: Callback): Promise[Event] = x._2
+  private implicit def promiseToCallback(x: Promise[Event])(implicit f: (Event => Boolean)): Callback = (f, x)
 
   case class EventUser(user: User, events: EventBuffer, callbacks: CallbacksMap)
 
@@ -97,12 +103,12 @@ object EventManager {
       user <- users;
       event <- user.events.iterator;
       manifest = Manifest.classType(event.getClass);
-      promiseOption = user.callbacks.get(manifest);
-      promise <- promiseOption
+      callbacks <- user.callbacks.get(manifest).iterator;
+      callback <- callbacks if callback._1(event)
     ) {
-      println(s"Dispatching $event to $promise")
+      println(s"Dispatching $event to $callback")
 
-      dispatchEvent(promise, event)
+      dispatchEvent(callback, event)
 
       user.events.remove(event)
 
@@ -125,30 +131,30 @@ object EventManager {
     add(event)
   }
 
-  private def callback[T <: Event: Manifest](implicit user: User): Option[Future[T]] = {
-    val currentUserOption = lookupUser(user)
+  def future[T <: Event](filter: (T => Boolean) = { _: Any => true })
+                        (implicit user: User, m: Manifest[T]): Future[T] = {
+    val promise = Promise[Event]()
+    val currentUser = lookupUser(user) getOrElse { addUser(user) }
 
-    for (
-      currentUser <- currentUserOption;
-      promise <- currentUser.callbacks.get(manifest[T])
-    ) yield promise.map(eventToEventImpl[T])
-  }
-
-  def future[T <: Event](implicit user: User, m: Manifest[T]): Future[T] = {
-    val promiseOption = callback[T]
-
-    if (promiseOption.isDefined)
-      println(s"Existing $promiseOption")
-
-    promiseOption getOrElse {
-      val currentUser = lookupUser(user) getOrElse { addUser(user) }
-      val promise = Promise[Event]()
-
-      currentUser.callbacks += m -> promise
-
-      println(s"Creating new one $promise")
-
-      promise.map(eventToEventImpl[T])
+    // This basically wraps a function that only accepts T into one that accepts
+    // any Event, downcasting it. This is absolutely type safe because the event type is checked via manifest
+    val polyFilterWrapper: PartialFunction[Event, Boolean] = {
+      case event =>
+        filter(event.asInstanceOf[T])
     }
+
+    val callback: Callback = (polyFilterWrapper, promise)
+
+    currentUser.callbacks.get(m) match {
+      case Some(callbacks) =>
+        callbacks add callback
+
+      case None =>
+        currentUser.callbacks += m -> new ConcurrentLinkedQueue[Callback]
+
+        currentUser.callbacks(m) add callback
+    }
+
+    promise.map(eventToEventImpl[T])
   }
 }
