@@ -17,7 +17,7 @@ import com.catapulta.implicits._
   * Created by sandromosca on 27/12/15.
   */
 package object messages {
-  case class ConnectionRequest(server: String, port: Int, nickname: String)
+  case class ConnectionRequest(server: String, port: Int, nickname: String, email: String, password: String)
   case class Token(token: UUID)
   case class Table(id: UUID, name: String, gameType: String, tableState: TableState, roomId: UUID, games: Seq[UUID])
   case class Card(cardName: String, setCode: String, cardNumber: Int, quantity: Int)
@@ -33,7 +33,9 @@ package object messages {
     (
       param("server")       ::
       param("port").as[Int] ::
-      param("nickname")
+      param("nickname")     ::
+      param("email")     ::
+      param("password")
     ).as[ConnectionRequest]
 
   val tokenRequestReader: RequestReader[Session] =

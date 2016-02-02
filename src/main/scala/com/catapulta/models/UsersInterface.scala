@@ -8,7 +8,7 @@ import mage.remote.SessionImpl
 /**
   * Created by sandromosca on 27/12/15.
   */
-case class User(nickname: String, server: String, port: Int, token: UUID)
+case class User(nickname: String, password: String, email: String, server: String, port: Int, token: UUID)
 
 trait UsersInterface { // TODO: Move everything to futures
   val name: String

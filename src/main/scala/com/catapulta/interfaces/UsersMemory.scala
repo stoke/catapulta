@@ -29,6 +29,8 @@ object UsersMemory extends UsersInterface {
   override def add(request: ConnectionRequest): (User, SessionImpl) = {
     val user = User(
       request.nickname,
+      request.password,
+      request.email,
       request.server,
       request.port,
       UUID.randomUUID()

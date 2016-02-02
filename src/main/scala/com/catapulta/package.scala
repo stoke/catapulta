@@ -58,8 +58,9 @@ package object utils {
     val connection = new Connection()
 
     connection.setHost(user.server)
-    connection.setPort(user.port)
+    connection.setEmail(user.email)
     connection.setUsername(user.nickname)
+    connection.setPassword(user.password)
     connection.setPort(user.port)
     connection.setProxyType(Connection.ProxyType.NONE)
 
